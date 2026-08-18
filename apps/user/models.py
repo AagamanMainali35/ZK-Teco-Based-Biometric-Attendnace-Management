@@ -19,12 +19,11 @@ class Employee(BaseModel, AbstractUser):
         return f"{self.username} ({self.employee_id or 'No ID'})"
 
 
-class EmployeeSequence(models.Mode):
-    employee_id = models.IntegerField(blank=False, null=False)
-    employee = models.ForeignKey(Employee, on_delete=models.CASCADE, null=False, blank=False)
+class EmployeeSequence(models.Model):
+    last_employee_id = models.PositiveIntegerField(default=0)
 
     def __str__(self):
-        return self.employee.first_name
+        return self.last_employee_id
 
 
 # class Organization(BaseModel):
