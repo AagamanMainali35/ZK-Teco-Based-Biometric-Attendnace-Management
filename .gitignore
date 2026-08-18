@@ -9,3 +9,10 @@ wheels/
 # Virtual environments
 .venv
 .env
+
+#IDE cONFIG fILES
+.vscode
+
+#Pre-commit-files
+.pre-commit*
+.flake8
