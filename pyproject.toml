@@ -7,12 +7,12 @@ requires-python = ">=3.10"
 dependencies = [
     "django>=5.2.17",
     "djangorestframework>=3.18.0",
-    "djangorestframework-simplejwt>=5.5.1",
-    "drf-spectacular>=0.30.0",
+    "djangorestframework-simplejwt>=5.5.1",    "drf-spectacular>=0.30.0",
     "requests>=2.34.2",
     "pillow>=12.3.0",
     "psycopg>=3.3.4",
     "uvicorn>=0.52.3",
+    "python-decouple>=3.8",
 ]
 
 [dependency-groups]

@@ -19,15 +19,25 @@ class Employee(BaseModel, AbstractUser):
         return f"{self.username} ({self.employee_id or 'No ID'})"
 
 
-class EmployeeSequence(models.Model):
+class EmployeeSequence(BaseModel):
     last_employee_id = models.PositiveIntegerField(default=0)
 
     def __str__(self):
         return self.last_employee_id
 
 
-# class Organization(BaseModel):
-# NOTE: aDD organization if making multi tenant rather than a  single used based application
-#     organization_Name=models.CharField()
-#     date_founded=models.DateField()
-#     def __str__(self):
+class Department(BaseModel):
+    name = models.CharField(max_length=100, unique=True)
+    code = models.CharField(max_length=20, unique=True)
+    description = models.TextField(blank=True)
+    manager = models.ForeignKey(
+        "Employee",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="managed_departments",
+    )
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"{self.name} ({self.code})"

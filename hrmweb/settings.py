@@ -11,28 +11,20 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 import os
+from datetime import timedelta
 from pathlib import Path
 
-from dotenv import load_dotenv
+from decouple import config
 
-load_dotenv()
-
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Load environment variables from .env
-load_dotenv(os.path.join(BASE_DIR, ".env"))
+ORGANIZATION_DOMAIN = config("ORGANIZATION_DOMAIN", default="lioris.ai", cast=str)
 
-# Read variables directly from environment
-ORGANIZATION_DOMAIN = os.getenv("ORGANIZATION_DOMAIN", "lioris.ai")
+AUTH_USER_MODEL = "users.Employee"
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-rfgrpht#)$yl%t*^tl@j%$gp)8@4x8ga=6+=54^np@8jhw_1sw"
+SECRET_KEY = config("SECRET_KEY", cast=str, default="django-insecure-rfgrpht#)$yl%t*^tl@j%$gp)8@4x8ga=6+=54^np@8jhw_1sw")
 
-# SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
 ALLOWED_HOSTS = []
@@ -46,7 +38,10 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "app.user",
+    # Django installed applications
+    "rest_framework_simplejwt",
+    "drf_spectacular",
+    "user",
 ]
 
 MIDDLEWARE = [
@@ -78,16 +73,39 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "hrmweb.wsgi.application"
 
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=config.get("ACCESS_TOKEN_LIFETIME", cast=int)),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=config.get("REFRESH_TOKEN_LIFETIME", cast=int)),
+    "ALGORITHM": config.get("ALGORITHM", cast=str),
+    "SIGNING_KEY": SECRET_KEY,
+}
 
-# Database
-# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': BASE_DIR / 'db.sqlite3',
-#     }
-# }
+SPECTACULAR_SETTINGS = {
+    "TITLE": "HRM API",
+    "DESCRIPTION": "Human Resource Management API",
+    "VERSION": "1.0.0",
+    "SECURITY": [
+        {
+            "BearerAuth": [],
+        }
+    ],
+    "APPEND_COMPONENTS": {
+        "securitySchemes": {
+            "BearerAuth": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT",
+            }
+        }
+    },
+}
+
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": ("rest_framework_simplejwt.authentication.JWTAuthentication",),
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+}
+
 DATABASES = {
     "default": {
         "ENGINE": os.environ.get("POSTGRES_ENGINE"),
@@ -98,7 +116,6 @@ DATABASES = {
         "PORT": os.environ.get("POSTGRES_PORT"),
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
