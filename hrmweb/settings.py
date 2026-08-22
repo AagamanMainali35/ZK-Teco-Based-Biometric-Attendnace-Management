@@ -20,7 +20,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 ORGANIZATION_DOMAIN = config("ORGANIZATION_DOMAIN", default="lioris.ai", cast=str)
 
-AUTH_USER_MODEL = "users.Employee"
+AUTH_USER_MODEL = "user.Employee"
 
 
 SECRET_KEY = config("SECRET_KEY", cast=str, default="django-insecure-rfgrpht#)$yl%t*^tl@j%$gp)8@4x8ga=6+=54^np@8jhw_1sw")
@@ -41,7 +41,8 @@ INSTALLED_APPS = [
     # Django installed applications
     "rest_framework_simplejwt",
     "drf_spectacular",
-    "user",
+    "apps.user",
+    "apps.auth",
 ]
 
 MIDDLEWARE = [
@@ -74,9 +75,9 @@ TEMPLATES = [
 WSGI_APPLICATION = "hrmweb.wsgi.application"
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=config.get("ACCESS_TOKEN_LIFETIME", cast=int)),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=config.get("REFRESH_TOKEN_LIFETIME", cast=int)),
-    "ALGORITHM": config.get("ALGORITHM", cast=str),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=config("ACCESS_TOKEN_LIFETIME", cast=int)),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=config("REFRESH_TOKEN_LIFETIME", cast=int)),
+    "ALGORITHM": config("ALGORITHM", cast=str),
     "SIGNING_KEY": SECRET_KEY,
 }
 
