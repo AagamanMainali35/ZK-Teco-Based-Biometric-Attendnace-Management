@@ -1,11 +1,9 @@
 # views.py
 from auth.serializers import (
-    ForgetPasswordSerializer,
     LoginSerializer,
     RegisterSerializer,
     ResetpasswordSerializer,
     UserSerializer,
-    VerifyResetTokenSerializer,
     send_codeSerializer,
 )
 from auth.service import AuthService
@@ -40,8 +38,8 @@ class RegisterView(APIView):
         serializer = RegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        AuthService.create_user(serializer.validated_data)
-        return Response({"details": "User registration successful"}, status=status.HTTP_201_CREATED)
+        registration_result = AuthService.create_user(serializer.validated_data)
+        return Response(registration_result, status=status.HTTP_200_OK if registration_result.get("success") else status.HTTP_400_BAD_REQUEST)
 
 
 class CurrentUser(GenericAPIView):

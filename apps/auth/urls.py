@@ -3,7 +3,6 @@ from django.urls import path
 
 from apps.auth.views import (
     CurrentUser,
-    ForgetPasswordView,
     LoginView,
     RegisterView,
     ResetPasswordView,
@@ -16,5 +15,4 @@ urlpatterns = [
     path("me/", CurrentUser.as_view(), name="register"),
     path("send-code/", SendCodeView.as_view(), name="register"),
     path("reset-password/", ResetPasswordView.as_view(), name="reset-password"),
-    path("forget-password/", ForgetPasswordView.as_view(), name="ForgetPasswordView"),
 ]

@@ -41,8 +41,10 @@ INSTALLED_APPS = [
     # Django installed applications
     "rest_framework_simplejwt",
     "drf_spectacular",
+    # Django installed application
     "apps.user",
     "apps.auth",
+    "apps.attendance",
 ]
 
 MIDDLEWARE = [
