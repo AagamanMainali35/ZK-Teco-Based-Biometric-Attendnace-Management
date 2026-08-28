@@ -22,13 +22,11 @@ ORGANIZATION_DOMAIN = config("ORGANIZATION_DOMAIN", default="lioris.ai", cast=st
 
 AUTH_USER_MODEL = "user.Employee"
 
-
 SECRET_KEY = config("SECRET_KEY", cast=str, default="django-insecure-rfgrpht#)$yl%t*^tl@j%$gp)8@4x8ga=6+=54^np@8jhw_1sw")
 
 DEBUG = True
 
 ALLOWED_HOSTS = []
-
 
 # Application definition
 INSTALLED_APPS = [
@@ -106,7 +104,7 @@ REST_FRAMEWORK = {
 DATABASES = {
     "default": {
         "ENGINE": os.environ.get("POSTGRES_ENGINE"),
-        "NAME": os.environ.get("hrm_db"),
+        "NAME": os.environ.get("POSTGRES_NAME"),
         "USER": os.environ.get("POSTGRES_USER"),
         "PASSWORD": os.environ.get("POSTGRES_PASSWORD"),
         "HOST": os.environ.get("POSTGRES_HOST", "0.0.0.0"),
