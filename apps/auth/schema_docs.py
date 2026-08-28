@@ -1,7 +1,6 @@
 from drf_spectacular.utils import OpenApiExample, OpenApiResponse
 
 from apps.auth.serializers import (
-    LoginResponseSerializer,
     LoginSerializer,
     RegisterSerializer,
 )

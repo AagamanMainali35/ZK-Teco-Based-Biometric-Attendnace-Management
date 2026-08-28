@@ -1,16 +1,17 @@
 import datetime
 
 import jwt
-from attendance.service import ZKDeviceService
-from auth.serializers import RegisterSerializer
-from base.exception import HTTPException
-from base.utils import generate_code, send_email
 from django.conf import settings
 from django.contrib.auth import authenticate
 from django.contrib.auth.tokens import default_token_generator
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
-from user.models import Employee, EmployeeSequence
+
+from apps.attendance.service import ZKDeviceService
+from apps.auth.serializers import RegisterSerializer
+from apps.base.exception import HTTPException
+from apps.base.utils import generate_code, send_email
+from apps.user.models import Employee, EmployeeSequence
 
 
 class AuthService:
@@ -51,19 +52,24 @@ class AuthService:
         )
         user.set_password(password)
         sync_result = ZKDeviceService.sync_employee_to_device(user)
-        user.save()
-        return {
-            "success": True,
-            "message": f"Employee {user.username} created and synced to device",
-            "data": {
-                "id": user.id,
-                "username": user.username,
-                "email": user.email,
-                "employee_id": user.employee_id,
-                "zk_device_user_id": user.zk_device_user_id,
-            },
-            "device_sync": sync_result,
-        }
+        success = sync_result.get("success", None)
+        message = sync_result.get("message", None)
+        if success:
+            user.save()
+            return {
+                "success": True,
+                "message": f"Employee {user.username} created and synced to device",
+                "data": {
+                    "id": user.id,
+                    "username": user.username,
+                    "email": user.email,
+                    "employee_id": user.employee_id,
+                    "zk_device_user_id": user.zk_device_user_id,
+                },
+                "device_sync": sync_result,
+            }
+        else:
+            raise HTTPException(detail=message if message else "Something went wrong", status_code=status.HTTP_504_GATEWAY_TIMEOUT)
 
     @staticmethod
     def _initiate_reset_password(email, new_password, password):
