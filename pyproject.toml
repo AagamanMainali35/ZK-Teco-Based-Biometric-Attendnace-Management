@@ -15,10 +15,12 @@ dependencies = [
     "uvicorn>=0.52.3",
     "python-decouple>=3.8",
     "pyzk>=0.9",
+    "rich>=15.0.0",
 ]
 
 [dependency-groups]
 dev = [
+    "ipdb>=0.13.13",
     "pre-commit>=4.6.2",
     "rich>=15.0.0",
 ]
