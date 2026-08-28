@@ -44,3 +44,12 @@ class DailyAttendanceLog(models.Model):
     class Meta:
         ordering = ["-date"]
         constraints = [models.UniqueConstraint(fields=["employee", "date"], name="unique_employee_date")]
+
+
+class SyncState(models.Model):
+    device_serial = models.CharField(max_length=50, unique=True)
+    last_synced_at = models.DateTimeField(null=True, blank=True)
+    last_run_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.device_serial} → last synced {self.last_synced_at}"
