@@ -7,7 +7,7 @@ from apps.base.exception import HTTPException
 
 DEVICE_IP = config("ZK_DEVICE_IP", default="192.168.1.201")
 DEVICE_PORT = config("ZK_DEVICE_PORT", default=4370)
-
+ZK_DEVICE_ENABLED = config("ZK_DEVICE_ENABLED", default=False, cast=bool)
 LATE_THRESHOLD_HOUR = 9
 LATE_THRESHOLD_MINUTE = 15
 
@@ -21,12 +21,16 @@ class ZKDeviceService:
 
         Creates user record on the device.
         """
+        if not ZK_DEVICE_ENABLED:
+            return {
+                "success": False,
+                "message": "ZKTeco device sync disabled",
+            }
         device = ZK("192.168.1.201", port=4370, timeout=5)
 
         try:
             conn = device.connect()
             print("Connected to device at 192.168.1.201")
-
             try:
                 conn.disable_device()
                 conn.set_user(
@@ -64,10 +68,7 @@ class ZKDeviceService:
                     print("Warning: Could not re-enable device")
 
         except ZKErrorConnection as e:
-            raise HTTPException(
-                detail=f"Cannot connect to attendance device: {str(e)}",
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            )
+            raise HTTPException(detail=f"Cannot connect to attendance device: {str(e)}", status_code=status.HTTP_503_SERVICE_UNAVAILABLE)
         finally:
             try:
                 conn.disconnect()
