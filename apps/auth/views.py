@@ -1,12 +1,4 @@
 # views.py
-from auth.serializers import (
-    LoginSerializer,
-    RegisterSerializer,
-    ResetpasswordSerializer,
-    UserSerializer,
-    send_codeSerializer,
-)
-from auth.service import AuthService
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.generics import GenericAPIView
@@ -15,6 +7,14 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.auth.schema_docs import LOGIN_SCHEMA, REGISTER_SCHEMA
+from apps.auth.serializers import (
+    LoginSerializer,
+    RegisterSerializer,
+    ResetpasswordSerializer,
+    UserSerializer,
+    send_codeSerializer,
+)
+from apps.auth.service import AuthService
 from apps.base.exception import HTTPException
 
 
