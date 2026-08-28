@@ -4,29 +4,12 @@ from apps.user.models import Employee
 
 
 class DeviceAttendanceLog(models.Model):
-    class PunchType(models.TextChoices):
-        CHECK_IN = "0", "Check In"
-        CHECK_OUT = "1", "Check Out"
-        BREAK_OUT = "2", "Break Out"
-        BREAK_IN = "3", "Break In"
-        OT_IN = "4", "OT In"
-        OT_OUT = "5", "OT Out"
-
-    class VerifyMode(models.TextChoices):
-        FINGERPRINT = "1", "Fingerprint"
-        CARD = "4", "Card"
-        FACE = "15", "Face"
-
-    employee = models.ForeignKey(
-        Employee,
-        on_delete=models.CASCADE,
-        related_name="attendance_logs",
-    )
     device_serial = models.CharField(max_length=50)
+    device_user_id = models.CharField(max_length=50)
+    uid = models.IntegerField()
     punch_time = models.DateTimeField(db_index=True)
-    punch_type = models.CharField(max_length=10, choices=PunchType.choices)
-    verify_mode = models.CharField(max_length=20, choices=VerifyMode.choices, null=True, blank=True)
-    raw_payload = models.JSONField(null=True, blank=True)
+    status = models.IntegerField()
+    punch = models.IntegerField()
 
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -34,16 +17,10 @@ class DeviceAttendanceLog(models.Model):
         ordering = ["-punch_time"]
         constraints = [
             models.UniqueConstraint(
-                fields=["employee", "punch_time", "device_serial"],
-                name="unique_employee_punch_per_device",
+                fields=["device_serial", "device_user_id", "punch_time"],
+                name="unique_device_attendance",
             )
         ]
-        indexes = [
-            models.Index(fields=["employee", "punch_time"]),
-        ]
-
-    def __str__(self):
-        return f"{self.employee} - {self.get_punch_type_display()} @ {self.punch_time}"
 
 
 class DailyAttendanceLog(models.Model):
