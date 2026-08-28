@@ -3,17 +3,11 @@
 import os
 import sys
 
-from pathlib import Path
-
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
 
 def main():
     """Run administrative tasks."""
-    BASE_DIR = Path(__file__).resolve().parent
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'hrmweb.settings') 
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "hrmweb.settings")
 
-    # Add the 'apps' directory to the Python path
-    sys.path.insert(0, str(BASE_DIR / "apps"))
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:
@@ -25,5 +19,5 @@ def main():
     execute_from_command_line(sys.argv)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
