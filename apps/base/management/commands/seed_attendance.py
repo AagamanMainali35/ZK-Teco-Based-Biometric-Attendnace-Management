@@ -7,31 +7,31 @@ from django.utils import timezone
 from apps.attendance.models import DeviceAttendanceLog
 
 EMPLOYEES = {
-    "emp_1": {"name": "Aayush Shrestha", "id": 1, "device_user_id": "1001"},
-    "emp_2": {"name": "Bibek Sharma", "id": 2, "device_user_id": "1002"},
-    "emp_3": {"name": "Pratima Adhikari", "id": 3, "device_user_id": "1003"},
-    "emp_4": {"name": "Sujan Poudel", "id": 4, "device_user_id": "1004"},
-    "emp_5": {"name": "Rita Khanal", "id": 5, "device_user_id": "1005"},
-    "emp_6": {"name": "Kiran Thapa", "id": 6, "device_user_id": "1006"},
-    "emp_7": {"name": "Sita Gurung", "id": 7, "device_user_id": "1007"},
-    "emp_8": {"name": "Hari Rana", "id": 8, "device_user_id": "1008"},
-    "emp_9": {"name": "Gita Karki", "id": 9, "device_user_id": "1009"},
-    "emp_10": {"name": "Ramesh Bhandari", "id": 10, "device_user_id": "1010"},
-    "emp_11": {"name": "Sunita Tamang", "id": 11, "device_user_id": "1011"},
-    "emp_12": {"name": "Krishna Mahato", "id": 12, "device_user_id": "1012"},
-    "emp_13": {"name": "Nisha Shahi", "id": 13, "device_user_id": "1013"},
-    "emp_14": {"name": "Rajesh Ghimire", "id": 14, "device_user_id": "1014"},
-    "emp_15": {"name": "Maya Rai", "id": 15, "device_user_id": "1015"},
-    "emp_16": {"name": "Dipak Regmi", "id": 16, "device_user_id": "1016"},
-    "emp_17": {"name": "Laxmi Pandey", "id": 17, "device_user_id": "1017"},
-    "emp_18": {"name": "Bishal Nepal", "id": 18, "device_user_id": "1018"},
-    "emp_19": {"name": "Saraswati Aryal", "id": 19, "device_user_id": "1019"},
-    "emp_20": {"name": "Manish Bhattarai", "id": 20, "device_user_id": "1020"},
-    "emp_21": {"name": "Usha Dhakal", "id": 21, "device_user_id": "1021"},
-    "emp_22": {"name": "Prakash Oli", "id": 22, "device_user_id": "1022"},
-    "emp_23": {"name": "Kalpana Chhetri", "id": 23, "device_user_id": "1023"},
-    "emp_24": {"name": "Suresh Subedi", "id": 24, "device_user_id": "1024"},
-    "emp_25": {"name": "Indira Joshi", "id": 25, "device_user_id": "1025"},
+    "emp_1": {"name": "Aayush Shrestha", "id": 1, "device_user_id": "emp_0001"},
+    "emp_2": {"name": "Bibek Sharma", "id": 2, "device_user_id": "emp_0002"},
+    "emp_3": {"name": "Pratima Adhikari", "id": 3, "device_user_id": "emp_0003"},
+    "emp_4": {"name": "Sujan Poudel", "id": 4, "device_user_id": "emp_0004"},
+    "emp_5": {"name": "Rita Khanal", "id": 5, "device_user_id": "emp_0005"},
+    "emp_6": {"name": "Kiran Thapa", "id": 6, "device_user_id": "emp_0006"},
+    "emp_7": {"name": "Sita Gurung", "id": 7, "device_user_id": "emp_0007"},
+    "emp_8": {"name": "Hari Rana", "id": 8, "device_user_id": "emp_0008"},
+    "emp_9": {"name": "Gita Karki", "id": 9, "device_user_id": "emp_0009"},
+    "emp_10": {"name": "Ramesh Bhandari", "id": 10, "device_user_id": "emp_0010"},
+    "emp_11": {"name": "Sunita Tamang", "id": 11, "device_user_id": "emp_0011"},
+    "emp_12": {"name": "Krishna Mahato", "id": 12, "device_user_id": "emp_0012"},
+    "emp_13": {"name": "Nisha Shahi", "id": 13, "device_user_id": "emp_0013"},
+    "emp_14": {"name": "Rajesh Ghimire", "id": 14, "device_user_id": "emp_0014"},
+    "emp_15": {"name": "Maya Rai", "id": 15, "device_user_id": "emp_0015"},
+    "emp_16": {"name": "Dipak Regmi", "id": 16, "device_user_id": "emp_0016"},
+    "emp_17": {"name": "Laxmi Pandey", "id": 17, "device_user_id": "emp_0017"},
+    "emp_18": {"name": "Bishal Nepal", "id": 18, "device_user_id": "emp_0018"},
+    "emp_19": {"name": "Saraswati Aryal", "id": 19, "device_user_id": "emp_0019"},
+    "emp_20": {"name": "Manish Bhattarai", "id": 20, "device_user_id": "emp_0020"},
+    "emp_21": {"name": "Usha Dhakal", "id": 21, "device_user_id": "emp_0021"},
+    "emp_22": {"name": "Prakash Oli", "id": 22, "device_user_id": "emp_0022"},
+    "emp_23": {"name": "Kalpana Chhetri", "id": 23, "device_user_id": "emp_0023"},
+    "emp_24": {"name": "Suresh Subedi", "id": 24, "device_user_id": "emp_0024"},
+    "emp_25": {"name": "Indira Joshi", "id": 25, "device_user_id": "emp_0025"},
 }
 
 
@@ -55,7 +55,6 @@ class Command(BaseCommand):
         start_date = now.date() - timedelta(days=days - 1)
 
         logs = []
-        uid = DeviceAttendanceLog.objects.order_by("-uid").values_list("uid", flat=True).first() or 0
 
         for employee in EMPLOYEES.values():
             for day_offset in range(days):
@@ -83,9 +82,6 @@ class Command(BaseCommand):
                     time(9, 0),
                 ) + timedelta(minutes=check_in_minutes, seconds=random.randint(0, 59))
 
-                check_in = timezone.make_aware(check_in)
-
-                uid += 1
                 logs.append(
                     DeviceAttendanceLog(
                         device_serial=device_serial,
@@ -93,7 +89,6 @@ class Command(BaseCommand):
                         punch_time=check_in,
                         punch=0,
                         status=1,
-                        uid=uid,
                     )
                 )
 
@@ -110,9 +105,6 @@ class Command(BaseCommand):
                     time(17, 0),
                 ) + timedelta(minutes=check_out_minutes, seconds=random.randint(0, 59))
 
-                check_out = timezone.make_aware(check_out)
-
-                uid += 1
                 logs.append(
                     DeviceAttendanceLog(
                         device_serial=device_serial,
@@ -120,7 +112,6 @@ class Command(BaseCommand):
                         punch_time=check_out,
                         punch=1,
                         status=1,
-                        uid=uid,
                     )
                 )
 
