@@ -7,11 +7,7 @@ from apps.user.models import Employee
 
 class StatusChoices(models.TextChoices):
     PRESENT = "present", "Present"
-    LATE = "late", "Late"
-    ABSENT = "absent", "Absent"
     HALF_DAY = "half_day", "Half Day"
-    MISSING_CHECK_OUT = "missing_check_out", "Missing Check Out"
-    LESS_THAN_HALF = "less than half day", "Less Than Half Day"
 
 
 class Device(models.Model):
@@ -50,8 +46,10 @@ class DailyAttendanceLog(models.Model):
     check_in_time = models.DateTimeField(null=True, blank=True)
     check_out_time = models.DateTimeField(null=True, blank=True)
     total_hours = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
-    status = models.CharField(max_length=20, choices=StatusChoices.choices, default=StatusChoices.ABSENT)
+    status = models.CharField(max_length=20, choices=StatusChoices.choices, null=True, blank=True)
     is_late = models.BooleanField(default=False)
+    is_early_leave = models.BooleanField(default=False)
+    early_leave_minutes = models.PositiveIntegerField(default=0)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -73,16 +71,15 @@ class SyncState(models.Model):
 class Policy(models.Model):
     single_column = models.BooleanField(default=True, unique=True, editable=False)
     name = models.CharField(max_length=100, unique=True)
-
     check_in_time = models.TimeField(default="09:00")
     check_out_time = models.TimeField(default="17:00")
-
     late_threshold_minutes = models.PositiveIntegerField(default=15)
     half_day_threshold_hours = models.DecimalField(
         max_digits=4,
         decimal_places=2,
         default=4,
     )
+
     full_day_hours = models.DecimalField(
         max_digits=4,
         decimal_places=2,
@@ -108,8 +105,6 @@ class Policy(models.Model):
         decimal_places=2,
         default=Decimal("0.00"),
     )
-
-    grace_period_minutes = models.PositiveIntegerField(default=0)
 
     minimum_working_days = models.PositiveIntegerField(default=0)
 
