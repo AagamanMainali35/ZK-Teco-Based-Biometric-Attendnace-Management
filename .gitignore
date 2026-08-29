@@ -16,3 +16,5 @@ wheels/
 #Pre-commit-files
 .pre-commit*
 .flake8
+
+makefile
