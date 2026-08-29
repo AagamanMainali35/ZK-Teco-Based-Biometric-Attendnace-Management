@@ -1,16 +1,10 @@
-import datetime
-
-import jwt
-from django.conf import settings
 from django.contrib.auth import authenticate
-from django.contrib.auth.tokens import default_token_generator
+from django.db import transaction
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.attendance.service import ZKDeviceService
-from apps.auth.serializers import RegisterSerializer
 from apps.base.exception import HTTPException
-from apps.base.utils import generate_code, send_email
 from apps.user.models import Employee, EmployeeSequence
 
 
@@ -36,19 +30,18 @@ class AuthService:
         return user
 
     @staticmethod
-    def create_user(payload: RegisterSerializer):
+    def create_user(payload: dict):
         password = payload.pop("password")
-
         sequence = EmployeeSequence.objects.filter(id=1).first()
         if not sequence:
-            sequence = EmployeeSequence.objects.create(last_employee_id=1)
+            sequence = EmployeeSequence.objects.create(id=1, last_employee_id=1)
         else:
             sequence.last_employee_id += 1
             sequence.save(update_fields=["last_employee_id"])
 
         user = Employee(
             **payload,
-            employee_id=sequence.last_employee_id,
+            employee_id=f"emp_{sequence.last_employee_id:04d}",
         )
         user.set_password(password)
         sync_result = ZKDeviceService.sync_employee_to_device(user)
@@ -69,20 +62,25 @@ class AuthService:
                 "device_sync": sync_result,
             }
         else:
-            raise HTTPException(detail=message if message else "Something went wrong", status_code=status.HTTP_504_GATEWAY_TIMEOUT)
+            raise HTTPException(
+                detail=message if message else "Something went wrong during device sync",
+                status_code=status.HTTP_504_GATEWAY_TIMEOUT,
+            )
 
     @staticmethod
-    def _initiate_reset_password(email, new_password, password):
+    def change_password(email, new_password, password):
         try:
             user = Employee.objects.get(email=email)
 
-            user = authenticate(username=user.username, password=password)
-            if user:
-                user.set_password(new_password)
-                return {"reset": True, "message": "Password reset has been successfully Completed"}
-            raise HTTPException(detail="Invalid password provided please try again later", status_code=status.HTTP_400_BAD_REQUEST)
+            authenticated_user = authenticate(username=user.username, password=password)
+            if authenticated_user:
+                authenticated_user.set_password(new_password)
+                authenticated_user.save()
+                return {"success": True, "message": "Password changed successfully."}
+            raise HTTPException(detail="Invalid password provided. Please try again.", status_code=status.HTTP_400_BAD_REQUEST)
         except Employee.DoesNotExist:
             raise HTTPException(detail="User account with given email not found", status_code=status.HTTP_400_BAD_REQUEST)
-
+        except HTTPException:
+            raise
         except Exception:
             raise HTTPException(detail="Something went wrong", status_code=status.HTTP_400_BAD_REQUEST)
