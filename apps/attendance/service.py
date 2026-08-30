@@ -16,6 +16,10 @@ from apps.attendance.models import (
     StatusChoices,
     SyncState,
 )
+from apps.attendance.query import (
+    get_device_by_serial,
+    get_or_create_device,
+)
 from apps.base.exception import HTTPException
 from apps.user.models import Employee
 
@@ -256,3 +260,19 @@ class AttendanceService:
                     "early_leave_minutes",
                 ],
             )
+
+
+class DeviceService:
+
+    @staticmethod
+    def register_device(device_data: dict) -> Device:
+        device, create = get_or_create_device(
+            serial=device_data.get("serial"),
+            name=device_data.get("name"),
+            ip_address=device_data.get("ip_address"),
+            port=device_data.get("port", 4370),
+        )
+
+        if not create:
+            raise HTTPException(detail=f"Device with serial '{device.serial}' already exists.", status_code=status.HTTP_400_BAD_REQUEST)
+        return device

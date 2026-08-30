@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     # Django installed applications
     "rest_framework_simplejwt",
     "drf_spectacular",
+    "django-filters",
     # Django installed application
     "apps.user",
     "apps.auth",
