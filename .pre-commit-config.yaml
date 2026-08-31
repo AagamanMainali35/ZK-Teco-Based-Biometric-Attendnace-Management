@@ -1,7 +1,7 @@
 # .pre-commit-config.yaml
 # Pre-commit hooks configuration for FastAPI project
 default_language_version:
-    python: "python3.11.8"
+    python: "python3.14.4"
 
 repos:
   # Basic file checks
@@ -25,14 +25,14 @@ repos:
     hooks:
       - id: isort
         args: ["--profile", "black", "--filter-files"]
-        language_version: python3.11.8
+        language_version: python3.14.4
 
   # Code formatting
   - repo: https://github.com/psf/black
     rev: 25.1.0
     hooks:
       - id: black
-        language_version: python3.11.8
+        language_version: python3.14.4
         args: ["--line-length=145"]
 
   # Linting with flake8
@@ -48,4 +48,4 @@ repos:
           "--max-line-length=145",
           "--ignore=D100,D101,D102,D103,D104,D105,D106,D107,E501,W503,E722,E402,F401,E741,D401,E203"
         ]
-        language_version: python3.11.8
+        language_version: python3.14.4
