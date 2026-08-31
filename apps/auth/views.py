@@ -15,6 +15,7 @@ from apps.auth.serializers import (
     send_codeSerializer,
 )
 from apps.auth.service import AuthService
+from apps.base.exception import HTTPException
 
 
 class LoginView(APIView):
