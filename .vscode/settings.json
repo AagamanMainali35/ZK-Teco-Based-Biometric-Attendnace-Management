@@ -3,7 +3,9 @@
         "filterset",
         "hrmweb",
         "lioris",
+        "Redoc",
         "rfgrpht",
-        "serialnumber"
+        "serialnumber",
+        "viewsets"
     ]
 }
