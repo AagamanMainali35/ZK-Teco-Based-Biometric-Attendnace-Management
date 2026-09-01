@@ -5,7 +5,12 @@ from apps.auth.serializers import (
     RegisterSerializer,
 )
 
-LOGIN_SCHEMA = {"request": LoginSerializer, "summary": "Login Endpoint", "description": "Authenticate a user"}
+LOGIN_SCHEMA = {
+    "request": LoginSerializer,
+    "summary": "Login Endpoint",
+    "description": "Authenticate a user",
+    "tags": ["auth"],
+}
 
 REGISTER_SCHEMA = {
     "request": RegisterSerializer,
