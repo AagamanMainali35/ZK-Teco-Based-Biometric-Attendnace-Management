@@ -19,6 +19,12 @@ class RegisterSerializer(serializers.Serializer):
     username = serializers.CharField()
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True)
+    device_serials = serializers.ListField(
+        child=serializers.CharField(),
+        required=False,
+        allow_empty=True,
+        default=None,
+    )
 
     def to_internal_value(self, data):
         data = data.copy()
