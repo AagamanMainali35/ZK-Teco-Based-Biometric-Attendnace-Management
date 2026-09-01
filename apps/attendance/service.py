@@ -1,7 +1,7 @@
 from collections import defaultdict
 from datetime import datetime, timedelta
 from decimal import Decimal
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from django.db import transaction
 from rest_framework import status
@@ -44,17 +44,38 @@ class ZKDeviceService:
             return {"success": False, "message": f"Failed to connect to device '{device.name}': {e}"}
 
     @staticmethod
-    def sync_employee_to_device(user: Employee, device: Optional[Device] = None):
-        """Register / sync employee to a specific device or all active devices."""
-        devices = [device] if device else list(Device.objects.filter(is_active=True))
-        if not devices:
-            return {"success": False, "message": "No active attendance devices configured", "synced_devices": []}
+    def test_connection(device: Device):
+        return ZKDeviceService._connect(device)
+
+    @staticmethod
+    def sync_employee_to_device(
+        user: Employee,
+        devices: Optional[Union[Device, List[Device]]] = None,
+    ):
+        """Register / sync employee to a specific device, list of devices, or all active devices."""
+        if devices is None:
+            target_devices = list(Device.objects.filter(is_active=True))
+        elif isinstance(devices, list):
+            target_devices = devices
+        else:
+            target_devices = [devices]
+
+        if not target_devices:
+            return {
+                "success": False,
+                "message": "No active attendance devices configured",
+                "synced_devices": [],
+                "failed_devices": [],
+            }
 
         synced_device_names = []
-        for dev in devices:
+        failed_devices = []
+
+        for dev in target_devices:
             result = ZKDeviceService._connect(dev)
             if not result["success"]:
-                return result
+                failed_devices.append({"device": dev.name, "serial": dev.serial, "error": result["message"]})
+                continue
 
             connection = result["connection"]
             try:
@@ -69,12 +90,9 @@ class ZKDeviceService:
                 user.zk_device_user_id = str(user.employee_id)
                 synced_device_names.append(dev.name)
             except ZKErrorResponse as e:
-                raise HTTPException(detail=f"Device '{dev.name}' error: {e}", status_code=status.HTTP_400_BAD_REQUEST)
+                failed_devices.append({"device": dev.name, "serial": dev.serial, "error": f"ZK error: {e}"})
             except Exception as e:
-                raise HTTPException(
-                    detail=f"Sync failed for device '{dev.name}': {e}",
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                )
+                failed_devices.append({"device": dev.name, "serial": dev.serial, "error": str(e)})
             finally:
                 try:
                     connection.enable_device()
@@ -82,14 +100,28 @@ class ZKDeviceService:
                 except Exception:
                     pass
 
+        if not synced_device_names:
+            error_details = "; ".join([f"{f['device']}: {f['error']}" for f in failed_devices])
+            return {
+                "success": False,
+                "message": f"Failed to sync to device(s): {error_details}",
+                "synced_devices": [],
+                "failed_devices": failed_devices,
+            }
+
         return {
             "success": True,
-            "message": f"Employee {user.username} synced to device(s)",
+            "message": (
+                f"Employee {user.username} synced to device(s)"
+                if not failed_devices
+                else f"Employee {user.username} partially synced ({len(synced_device_names)} succeeded, {len(failed_devices)} failed)"
+            ),
             "synced_devices": synced_device_names,
+            "failed_devices": failed_devices,
         }
 
     @staticmethod
-    def pull_attendance_from_device(device: Device):
+    def _pull_attendance_from_device(device: Device):
         """Pull raw attendance logs from a specific ZK device."""
         result = ZKDeviceService._connect(device)
         if not result["success"]:
@@ -102,7 +134,7 @@ class ZKDeviceService:
             new_attendance = AttendanceService.save_attendance(attendances, device_serial)
             return {
                 "success": True,
-                "new_attendance": new_attendance,
+                "records_pulled": len(new_attendance),
                 "device_serial": device_serial,
                 "device_name": device.name,
             }
@@ -120,17 +152,17 @@ class ZKDeviceService:
                 pass
 
     @staticmethod
-    def _pull_attendance_from_device(device: Device):
-        return ZKDeviceService.pull_attendance_from_device(device)
+    def pull_attendance_from_device(device: Device):
+        return ZKDeviceService._pull_attendance_from_device(device)
 
     @staticmethod
     def pull_attendance_from_all_active_devices():
         results = []
         for dev in Device.objects.filter(is_active=True):
             try:
-                results.append({"device": dev.name, "result": ZKDeviceService.pull_attendance_from_device(dev)})
+                results.append({"device": dev.name, "serial": dev.serial, "result": ZKDeviceService.pull_attendance_from_device(dev)})
             except Exception as e:
-                results.append({"device": dev.name, "success": False, "error": str(e)})
+                results.append({"device": dev.name, "serial": dev.serial, "success": False, "error": str(e)})
         return results
 
 
@@ -186,7 +218,7 @@ class AttendanceService:
             log.total_hours = Decimal("0.00")
             log.is_early_leave = False
             log.early_leave_minutes = 0
-            log.status = None
+            log.status = StatusChoices.ABSENT
             return log
 
         hours_worked = Decimal(str(round((log.check_out_time - log.check_in_time).total_seconds() / 3600, 2)))
@@ -195,12 +227,10 @@ class AttendanceService:
         log.is_early_leave = log.check_out_time < expected_check_out
         log.early_leave_minutes = max(0, int((expected_check_out - log.check_out_time).total_seconds() // 60)) if log.is_early_leave else 0
 
-        if hours_worked >= policy.full_day_hours:
-            log.status = StatusChoices.PRESENT
-        elif hours_worked >= policy.half_day_threshold_hours:
+        if hours_worked < policy.half_day_threshold_hours:
             log.status = StatusChoices.HALF_DAY
         else:
-            log.status = None
+            log.status = StatusChoices.PRESENT
 
         return log
 
@@ -261,9 +291,10 @@ class AttendanceService:
                 ],
             )
 
+        return {"success": True, "new_logs": len(new_logs), "updated_logs": len(updated_logs)}
+
 
 class DeviceService:
-
     @staticmethod
     def register_device(device_data: dict) -> Device:
         device, create = get_or_create_device(
@@ -276,3 +307,28 @@ class DeviceService:
         if not create:
             raise HTTPException(detail=f"Device with serial '{device.serial}' already exists.", status_code=status.HTTP_400_BAD_REQUEST)
         return device
+
+    @staticmethod
+    def update_device(device: Device, device_data: dict) -> Device:
+        for field in ["name", "ip_address", "port", "is_active"]:
+            if field in device_data:
+                setattr(device, field, device_data[field])
+        device.save(update_fields=["name", "ip_address", "port", "is_active"])
+        return device
+
+    @staticmethod
+    def deactivate_device(device: Device):
+        if not device.is_active:
+            raise HTTPException(detail=f"Device '{device.name}' is already inactive.", status_code=status.HTTP_400_BAD_REQUEST)
+        device.is_active = False
+        device.save(update_fields=["is_active"])
+        return device
+
+    @staticmethod
+    def delete_device(device: Device):
+        if device.is_active:
+            raise HTTPException(
+                detail=f"Cannot delete active device '{device.name}'. Please deactivate it first.", status_code=status.HTTP_400_BAD_REQUEST
+            )
+        device.delete()
+        return {"success": True, "message": f"Device '{device.name}' deleted successfully."}
