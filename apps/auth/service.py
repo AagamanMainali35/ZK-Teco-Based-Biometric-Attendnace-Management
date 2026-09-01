@@ -3,6 +3,7 @@ from django.db import transaction
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from apps.attendance.models import Device
 from apps.attendance.service import ZKDeviceService
 from apps.base.exception import HTTPException
 from apps.user.models import Employee, EmployeeSequence
@@ -32,6 +33,11 @@ class AuthService:
     @staticmethod
     def create_user(payload: dict):
         password = payload.pop("password")
+        device_serials = payload.pop("device_serials", None)
+        devices = None
+        if device_serials:
+            devices = list(Device.objects.filter(serial__in=device_serials, is_active=True))
+
         sequence = EmployeeSequence.objects.filter(id=1).first()
         if not sequence:
             sequence = EmployeeSequence.objects.create(id=1, last_employee_id=1)
@@ -44,7 +50,7 @@ class AuthService:
             employee_id=f"emp_{sequence.last_employee_id:04d}",
         )
         user.set_password(password)
-        sync_result = ZKDeviceService.sync_employee_to_device(user)
+        sync_result = ZKDeviceService.sync_employee_to_device(user, devices=devices)
         success = sync_result.get("success", None)
         message = sync_result.get("message", None)
         if success:
