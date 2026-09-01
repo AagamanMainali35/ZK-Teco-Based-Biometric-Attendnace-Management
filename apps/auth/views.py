@@ -6,11 +6,10 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.auth.schema_docs import LOGIN_SCHEMA, REGISTER_SCHEMA
+from apps.auth.schema_docs import LOGIN_SCHEMA
 from apps.auth.serializers import (
     ChangePasswordSerializer,
     LoginSerializer,
-    RegisterSerializer,
     UserSerializer,
 )
 from apps.auth.service import AuthService
@@ -30,18 +29,7 @@ class LoginView(APIView):
         return Response(tokens, status=status.HTTP_200_OK)
 
 
-class RegisterView(APIView):
-    @extend_schema(**REGISTER_SCHEMA)
-    def post(self, request):
-        serializer = RegisterSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        registration_result = AuthService.create_user(serializer.validated_data)
-        if not registration_result.get("success"):
-            return Response(registration_result, status=status.HTTP_400_BAD_REQUEST)
-        return Response(registration_result, status=status.HTTP_201_CREATED)
-
-
+@extend_schema(tags=["auth"])
 class CurrentUser(GenericAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = UserSerializer
@@ -55,7 +43,7 @@ class ChangePasswordView(GenericAPIView):
     service_class = AuthService
     permission_classes = [IsAuthenticated]
 
-    @extend_schema(request=ChangePasswordSerializer)
+    @extend_schema(request=ChangePasswordSerializer, tags=["auth"])
     def post(self, request):
         serializer = ChangePasswordSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
