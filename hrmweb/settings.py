@@ -39,7 +39,7 @@ INSTALLED_APPS = [
     # Django installed applications
     "rest_framework_simplejwt",
     "drf_spectacular",
-    "django-filters",
+    "django_filters",
     # Django installed application
     "apps.user",
     "apps.auth",
@@ -84,18 +84,16 @@ SIMPLE_JWT = {
 }
 
 SPECTACULAR_SETTINGS = {
-    "TITLE": "HRM API",
+    "TITLE": "HRM API V1",
     "DESCRIPTION": "Human Resource Management API",
     "VERSION": "1.0.0",
-    "SECURITY": [{"BearerAuth": []}],
-    "SECURITY_DEFINITIONS": {
-        "BearerAuth": {
-            "type": "http",
-            "scheme": "bearer",
-            "bearerFormat": "JWT",
-            "description": 'JWT token obtained from login endpoint. Format: "Bearer <token>"',
-        }
-    },
+    "TAGS": [
+        {"name": "auth"},
+        {"name": "device"},
+        {"name": "attendance"},
+        {"name": "employee"},
+        {"name": "schema"},
+    ],
 }
 
 REST_FRAMEWORK = {
