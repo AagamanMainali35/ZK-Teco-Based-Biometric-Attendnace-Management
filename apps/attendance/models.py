@@ -8,6 +8,7 @@ from apps.user.models import Employee
 class StatusChoices(models.TextChoices):
     PRESENT = "present", "Present"
     HALF_DAY = "half_day", "Half Day"
+    ABSENT = "absent", "Absent"
 
 
 class Device(models.Model):
