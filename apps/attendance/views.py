@@ -166,6 +166,20 @@ class DeviceSyncStateView(APIView):
 @extend_schema(tags=["attendance"])
 class DailyAttendanceViewSet(ModelViewSet):
     queryset = DailyAttendanceLog.objects.all()
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = [
+        "date",
+        "status",
+        "is_early_leave",
+    ]
+    search_fields = [
+        "employee__username",
+    ]
+    ordering_fields = [
+        "date", 
+        "employee__username",
+        "total_hours"
+    ]
     serializer_class = DailyAttendanceSerializer
     http_method_names = ["get", "delete"]
 
