@@ -26,3 +26,22 @@ class SyncEmployeeView(APIView):
         if not registration_result.get("success"):
             return Response(registration_result, status=status.HTTP_400_BAD_REQUEST)
         return Response(registration_result, status=status.HTTP_201_CREATED)
+
+
+class EmployeeListView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(tags=["employee"], responses=DailyAttendanceSerializer(many=True))
+    def get(self, request):
+        user = request.user
+        records = AttendanceService.get_attendance(user.employee_id)
+
+        paginator = PageNumberPagination()
+        paginator.page_size = 10
+        page = paginator.paginate_queryset(
+            queryset=records,
+            request=request,
+            view=self,
+        )
+        serializer = DailyAttendanceSerializer(page, many=True)
+        return paginator.get_paginated_response(serializer.data)
