@@ -4,6 +4,7 @@ from apps.attendance.models import (
     DailyAttendanceLog,
     Device,
     DeviceAttendanceLog,
+    Policy,
     SyncState,
 )
 from apps.user.models import Employee
@@ -74,10 +75,13 @@ def get_devices_with_sync_state(serial: Optional[str] = None):
         )
     return results
 
-
 def get_attendance_records(employee_id: Optional[str] = None):
     if employee_id:
         if not Employee.objects.filter(employee_id=employee_id).exists():
             return None
         return DailyAttendanceLog.objects.filter(employee__employee_id=employee_id)
     return DailyAttendanceLog.objects.all()
+
+
+def getAllPolicy():
+    return Policy.objects.all()
