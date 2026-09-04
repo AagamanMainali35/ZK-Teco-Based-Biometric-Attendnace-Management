@@ -92,6 +92,7 @@ SPECTACULAR_SETTINGS = {
         {"name": "device"},
         {"name": "attendance"},
         {"name": "employee"},
+        {"name": "policy"},
         {"name": "schema"},
     ],
 }
