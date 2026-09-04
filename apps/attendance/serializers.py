@@ -55,6 +55,24 @@ class DailyAttendanceSerializer(serializers.ModelSerializer):
             "is_early_leave",
             "early_leave_minutes",
         ]
+        
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+
+        data["employee"] = instance.employee.username
+
+        data["check_in_time"] = (
+            instance.check_in_time.strftime("%Y-%m-%d %H:%M:%S")
+            if instance.check_in_time else None
+        )
+
+        data["check_out_time"] = (
+            instance.check_out_time.strftime("%Y-%m-%d %H:%M:%S")
+            if instance.check_out_time else None
+        )
+
+        return data
+        
 
 
 class RawAttendanceSerializer(serializers.ModelSerializer):
