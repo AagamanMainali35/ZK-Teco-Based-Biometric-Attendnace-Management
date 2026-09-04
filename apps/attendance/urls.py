@@ -8,12 +8,14 @@ from apps.attendance.views import (
     PullAttendanceView,
     RawAttendanceView,
     TestConnectionView,
+    PolicyView
 )
 
 router = DefaultRouter()
 router.register("device", DeviceView, basename="device")
 router.register("attendance-log", DailyAttendanceViewSet, basename="attendance-log")
 router.register("raw/attendance-log", RawAttendanceView, basename="raw-attendance-log")
+router.register("policy", PolicyView,basename="PolicyView")
 
 
 urlpatterns = [
