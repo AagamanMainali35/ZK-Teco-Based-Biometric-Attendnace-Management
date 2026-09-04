@@ -4,6 +4,7 @@ from apps.attendance.models import (
     DailyAttendanceLog,
     Device,
     DeviceAttendanceLog,
+    Policy,
     SyncState,
 )
 
@@ -79,3 +80,11 @@ class RawAttendanceSerializer(serializers.ModelSerializer):
     class Meta:
         model = DeviceAttendanceLog
         fields = "__all__"
+
+
+class PolicySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Policy
+        fields = "__all__"
+
+
