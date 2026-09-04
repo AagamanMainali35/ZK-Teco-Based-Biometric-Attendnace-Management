@@ -1,11 +1,16 @@
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
+from rest_framework.pagination import PageNumberPagination
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.attendance.serializers import DailyAttendanceSerializer
+from apps.attendance.service import AttendanceService
 from apps.auth.schema_docs import REGISTER_SCHEMA
 from apps.auth.serializers import RegisterSerializer
 from apps.auth.service import AuthService
+
 
 # Create your views here.
 
