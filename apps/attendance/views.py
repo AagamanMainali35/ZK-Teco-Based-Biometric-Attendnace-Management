@@ -12,11 +12,13 @@ from apps.attendance.query import (
     get_all_device,
     get_device_by_serial,
     get_devices_with_sync_state,
+    getAllPolicy,
 )
 from apps.attendance.serializers import (
     DailyAttendanceSerializer,
     DeviceSerializer,
     DeviceSyncStateSerializer,
+    PolicySerializer,
     RawAttendanceSerializer,
 )
 from apps.attendance.service import DeviceService, ZKDeviceService
@@ -195,3 +197,10 @@ class RawAttendanceView(ModelViewSet):
     queryset = DeviceAttendanceLog.objects.all()
     serializer_class = RawAttendanceSerializer
     http_method_names = ["get", "delete"]
+
+
+@extend_schema(tags=["policy"])
+class PolicyView(ModelViewSet):
+    queryset=getAllPolicy()
+    serializer_class=PolicySerializer
+    http_method_names = ["get", "post", "patch"]
