@@ -17,8 +17,8 @@ from apps.attendance.models import (
     SyncState,
 )
 from apps.attendance.query import (
-    get_device_by_serial,
     get_or_create_device,
+    get_attendance_records
 )
 from apps.base.exception import HTTPException
 from apps.user.models import Employee
@@ -293,6 +293,16 @@ class AttendanceService:
 
         return {"success": True, "new_logs": len(new_logs), "updated_logs": len(updated_logs)}
 
+    @staticmethod
+    def get_attendance(employee_id: Optional[str] = None):
+        if not employee_id:
+            raise HTTPException(detail="Invalid employee_id provided.", status_code=status.HTTP_400_BAD_REQUEST)
+        result = get_attendance_records(employee_id)
+        if result is None:
+            raise HTTPException(detail=f"Employee with ID '{employee_id}' not found.", status_code=status.HTTP_404_NOT_FOUND)
+        return result
+
+    
 
 class DeviceService:
     @staticmethod
