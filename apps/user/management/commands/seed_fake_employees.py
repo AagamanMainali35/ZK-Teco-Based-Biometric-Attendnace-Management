@@ -3,34 +3,34 @@ from django.db import transaction
 
 from apps.attendance.models import DailyAttendanceLog, DeviceAttendanceLog
 from apps.attendance.service import AttendanceService
-from apps.user.models import Department, Employee
+from apps.user.models import Employee
 
 SAMPLE_EMPLOYEES = [
-    ("Aarav", "Sharma", "Engineering"),
-    ("Diya", "Patel", "Engineering"),
-    ("Rohan", "Verma", "Engineering"),
-    ("Ananya", "Iyer", "Engineering"),
-    ("Kabir", "Mehta", "Engineering"),
-    ("Pooja", "Joshi", "Human Resources"),
-    ("Vikram", "Singh", "Human Resources"),
-    ("Sneha", "Kulkarni", "Finance"),
-    ("Arjun", "Nair", "Finance"),
-    ("Neha", "Reddy", "Marketing"),
-    ("Rahul", "Gupta", "Marketing"),
-    ("Priya", "Choudhury", "Operations"),
-    ("Aditya", "Rao", "Operations"),
-    ("Ishita", "Bose", "Engineering"),
-    ("Karan", "Malhotra", "Engineering"),
-    ("Meera", "Menon", "Finance"),
-    ("Siddharth", "Das", "Marketing"),
-    ("Tanvi", "Saxena", "Human Resources"),
-    ("Varun", "Kapoor", "Engineering"),
-    ("Rhea", "Sen", "Operations"),
-    ("Manish", "Pandey", "Engineering"),
-    ("Kavita", "Deshmukh", "Finance"),
-    ("Nikhil", "Bhatia", "Marketing"),
-    ("Shruti", "Mishra", "Human Resources"),
-    ("Gaurav", "Thakur", "Operations"),
+    ("Aarav", "Sharma"),
+    ("Diya", "Patel"),
+    ("Rohan", "Verma"),
+    ("Ananya", "Iyer"),
+    ("Kabir", "Mehta"),
+    ("Pooja", "Joshi"),
+    ("Vikram", "Singh"),
+    ("Sneha", "Kulkarni"),
+    ("Arjun", "Nair"),
+    ("Neha", "Reddy"),
+    ("Rahul", "Gupta"),
+    ("Priya", "Choudhury"),
+    ("Aditya", "Rao"),
+    ("Ishita", "Bose"),
+    ("Karan", "Malhotra"),
+    ("Meera", "Menon"),
+    ("Siddharth", "Das"),
+    ("Tanvi", "Saxena"),
+    ("Varun", "Kapoor"),
+    ("Rhea", "Sen"),
+    ("Manish", "Pandey"),
+    ("Kavita", "Deshmukh"),
+    ("Nikhil", "Bhatia"),
+    ("Shruti", "Mishra"),
+    ("Gaurav", "Thakur"),
 ]
 
 
@@ -60,22 +60,6 @@ class Command(BaseCommand):
         password = options["password"]
         skip_process = options["no_attendance_process"]
 
-        self.stdout.write(self.style.NOTICE("--- Seeding Departments ---"))
-        departments = {
-            "Engineering": "ENG",
-            "Human Resources": "HR",
-            "Finance": "FIN",
-            "Marketing": "MKT",
-            "Operations": "OPS",
-        }
-        dept_objs = {}
-        for name, code in departments.items():
-            dept, _ = Department.objects.get_or_create(
-                name=name,
-                defaults={"code": code, "description": f"{name} Department"},
-            )
-            dept_objs[name] = dept
-
         # Discover all unique device_user_ids from raw attendance logs
         raw_user_ids = list(DeviceAttendanceLog.objects.values_list("device_user_id", flat=True).distinct().order_by("device_user_id"))
 
@@ -93,13 +77,12 @@ class Command(BaseCommand):
         with transaction.atomic():
             for idx, uid in enumerate(raw_user_ids):
                 sample_idx = idx % len(SAMPLE_EMPLOYEES)
-                first_name, last_name, dept_name = SAMPLE_EMPLOYEES[sample_idx]
+                first_name, last_name = SAMPLE_EMPLOYEES[sample_idx]
                 username = f"{first_name.lower()}.{last_name.lower()}{uid}"
                 email = f"{first_name.lower()}.{last_name.lower()}{uid}@lioris.ai"
 
                 employee = Employee.objects.filter(employee_id=uid).first()
                 if not employee:
-                    # Check if username exists
                     if Employee.objects.filter(username=username).exists():
                         username = f"emp_{uid}"
                     if Employee.objects.filter(email=email).exists():
@@ -130,7 +113,6 @@ class Command(BaseCommand):
             )
         )
 
-        # Process daily attendance logs
         if not skip_process:
             self.stdout.write(self.style.NOTICE("--- Processing Daily Attendance Logs ---"))
             raw_logs = list(DeviceAttendanceLog.objects.all())

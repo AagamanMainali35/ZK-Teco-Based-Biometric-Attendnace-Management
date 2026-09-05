@@ -1,7 +1,8 @@
-from django.contrib import admin
+from django.contrib.admin import register
 from django.contrib.auth.admin import UserAdmin
+from django.contrib import admin
 
-from apps.user.models import Department, Employee, EmployeeSequence
+from apps.user.models import Employee, EmployeeSequence
 
 
 @admin.register(Employee)
@@ -22,13 +23,6 @@ class EmployeeAdmin(UserAdmin):
 
     fieldsets = UserAdmin.fieldsets + (("HRM & Biometric Info", {"fields": ("employee_id", "zk_device_user_id")}),)
     add_fieldsets = UserAdmin.add_fieldsets + (("HRM & Biometric Info", {"fields": ("employee_id", "zk_device_user_id")}),)
-
-
-@admin.register(Department)
-class DepartmentAdmin(admin.ModelAdmin):
-    list_display = ("name", "code", "manager", "is_active", "created_at")
-    search_fields = ("name", "code")
-    list_filter = ("is_active",)
 
 
 @admin.register(EmployeeSequence)
