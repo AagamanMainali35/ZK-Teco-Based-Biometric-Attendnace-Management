@@ -1,7 +1,5 @@
-from django.contrib.auth import authenticate
-from rest_framework import serializers, status
+from rest_framework import serializers
 
-from apps.base.exception import HTTPException
 from apps.user.models import Employee
 
 
@@ -13,36 +11,6 @@ class LoginSerializer(serializers.Serializer):
 class LoginResponseSerializer(serializers.Serializer):
     access = serializers.CharField()
     refresh = serializers.CharField()
-
-
-class RegisterSerializer(serializers.Serializer):
-    username = serializers.CharField()
-    email = serializers.EmailField()
-    password = serializers.CharField(write_only=True)
-    device_serials = serializers.ListField(
-        child=serializers.CharField(),
-        required=False,
-        allow_empty=True,
-        default=None,
-    )
-
-    def to_internal_value(self, data):
-        data = data.copy()
-
-        if "email" in data and data["email"]:
-            data["email"] = data["email"].lower().strip()
-
-        return super().to_internal_value(data)
-
-    def validate_username(self, value):
-        if Employee.objects.filter(username=value).exists():
-            raise serializers.ValidationError("A user with this username already exists.")
-        return value
-
-    def validate_email(self, value):
-        if Employee.objects.filter(email=value).exists():
-            raise serializers.ValidationError("A user with this email already exists.")
-        return value
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -75,23 +43,17 @@ class UserSerializer(serializers.ModelSerializer):
         return data
 
 
-class send_codeSerializer(serializers.Serializer):
-    email = serializers.EmailField()
-
-    def validate_email(self, value):
-        try:
-            user = Employee.objects.get(email=value)
-            return user.email
-        except Employee.DoesNotExist:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User with provided detail not found")
-
-
 class ChangePasswordSerializer(serializers.Serializer):
-    password = serializers.CharField()
-    new_password = serializers.CharField()
+    password = serializers.CharField(write_only=True)
+    new_password = serializers.CharField(write_only=True)
 
     def validate(self, attrs):
         if attrs["password"] == attrs["new_password"]:
             raise serializers.ValidationError({"new_password": "New password must be different from the current password."})
-
         return attrs
+
+
+class ChangeEmployeePasswordSerializer(serializers.Serializer):
+    """Used by HR/Admin to change any employee's password."""
+    employee_id = serializers.CharField(required=False, help_text="Employee ID or username (optional if specified in URL)")
+    new_password = serializers.CharField(write_only=True)

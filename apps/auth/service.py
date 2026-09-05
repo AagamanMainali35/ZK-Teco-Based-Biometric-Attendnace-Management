@@ -1,5 +1,4 @@
 from django.contrib.auth import authenticate
-from django.db import transaction
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 
@@ -90,3 +89,24 @@ class AuthService:
             raise
         except Exception:
             raise HTTPException(detail="Something went wrong", status_code=status.HTTP_400_BAD_REQUEST)
+
+    @staticmethod
+    def change_employee_password(employee_identifier: str, new_password: str):
+        """HR/Admin method to change any employee's password without needing old password."""
+        employee = (
+            Employee.objects.filter(employee_id=employee_identifier).first()
+            or Employee.objects.filter(username=employee_identifier).first()
+            or Employee.objects.filter(email=employee_identifier).first()
+            or (Employee.objects.filter(id=int(employee_identifier)).first() if str(employee_identifier).isdigit() else None)
+        )
+
+        if not employee:
+            raise HTTPException(detail=f"Employee '{employee_identifier}' not found.", status_code=status.HTTP_404_NOT_FOUND)
+
+        employee.set_password(new_password)
+        employee.save()
+
+        return {
+            "success": True,
+            "message": f"Password for employee '{employee.username}' ({employee.employee_id}) has been updated successfully.",
+        }

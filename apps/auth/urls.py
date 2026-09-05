@@ -1,8 +1,8 @@
 from django.urls import path
-from drf_spectacular.utils import extend_schema
 from rest_framework_simplejwt.views import TokenRefreshView
 
 from apps.auth.views import (
+    ChangeEmployeePasswordView,
     ChangePasswordView,
     CurrentUser,
     LoginView,
@@ -13,4 +13,5 @@ urlpatterns = [
     path("token/refresh/", TokenRefreshView.as_view(), name="token-refresh"),
     path("me/", CurrentUser.as_view(), name="me"),
     path("change-password/", ChangePasswordView.as_view(), name="change-password"),
+    path("change-employee-password/", ChangeEmployeePasswordView.as_view(), name="change-employee-password"),
 ]
