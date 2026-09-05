@@ -1,3 +1,5 @@
+from apps.attendance.models import Policy
+from apps.base.exception import HTTPException
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status
@@ -6,6 +8,7 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
+import django_filters
 
 from apps.attendance.models import DailyAttendanceLog, DeviceAttendanceLog
 from apps.attendance.query import (
@@ -90,7 +93,7 @@ class DeviceView(ModelViewSet):
 @extend_schema(tags=["device"])
 class TestConnectionView(APIView):
     def post(self, request, *args, **kwargs):
-        serial = self.kwargs.get("serial_number", None)
+        serial = self.kwargs.get("serial", None)
         if not serial or serial.strip() == "":
             return Response(
                 {"detail": "Please provide valid device serial number."},
@@ -164,18 +167,40 @@ class DeviceSyncStateView(APIView):
         serializer = DeviceSyncStateSerializer(data, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+class AttendanceFilter(django_filters.FilterSet):
+    start_date = django_filters.DateFilter(
+        field_name="date",
+        lookup_expr="gte",
+    )
 
+    end_date = django_filters.DateFilter(
+        field_name="date",
+        lookup_expr="lte",
+    )
+
+    employee_id = django_filters.CharFilter(
+        field_name="employee__employee_id",
+        lookup_expr="exact",
+    )
+
+    class Meta:
+        model = DailyAttendanceLog
+        fields = [
+            "start_date",
+            "end_date",
+            "employee_id",
+            "status",
+            "is_early_leave",
+        ]
+        
 @extend_schema(tags=["attendance"])
 class DailyAttendanceViewSet(ModelViewSet):
-    queryset = DailyAttendanceLog.objects.all()
+    queryset = DailyAttendanceLog.objects.all().select_related("employee")
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = [
-        "date",
-        "status",
-        "is_early_leave",
-    ]
+    filterset_class = AttendanceFilter
     search_fields = [
         "employee__username",
+        "employee__employee_id",
     ]
     ordering_fields = [
         "date", 
@@ -184,12 +209,6 @@ class DailyAttendanceViewSet(ModelViewSet):
     ]
     serializer_class = DailyAttendanceSerializer
     http_method_names = ["get", "delete"]
-
-    def get_object(self):
-        if self.request.method == "GET":
-            self.lookup_field = "employee_id"
-
-        return super().get_object()
 
 
 @extend_schema(tags=["attendance"])
@@ -201,6 +220,16 @@ class RawAttendanceView(ModelViewSet):
 
 @extend_schema(tags=["policy"])
 class PolicyView(ModelViewSet):
-    queryset=getAllPolicy()
-    serializer_class=PolicySerializer
+    queryset = getAllPolicy()
+    serializer_class = PolicySerializer
     http_method_names = ["get", "post", "patch"]
+
+    def create(self, request, *args, **kwargs):
+        if Policy.objects.exists():
+            raise HTTPException(
+                detail="Cannot add a new policy when one instance already exists. Please update the existing policy.",
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+        return super().create(request, *args, **kwargs)
+
+
