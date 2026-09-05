@@ -40,14 +40,19 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt",
     "drf_spectacular",
     "django_filters",
+    "debug_toolbar",
     # Django installed application
     "apps.user",
     "apps.auth",
     "apps.attendance",
+    "apps.leave",
     "apps.base",
 ]
 
+INTERNAL_IPS = ["127.0.0.1"]
+
 MIDDLEWARE = [
+    "debug_toolbar.middleware.DebugToolbarMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -93,6 +98,7 @@ SPECTACULAR_SETTINGS = {
         {"name": "groups"},
         {"name": "device"},
         {"name": "attendance"},
+        {"name": "leave"},
         {"name": "employee"},
         {"name": "policy"},
         {"name": "schema"},
