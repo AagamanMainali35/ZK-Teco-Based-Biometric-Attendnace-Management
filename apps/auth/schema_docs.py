@@ -1,18 +1,8 @@
-from drf_spectacular.utils import OpenApiExample, OpenApiResponse
-
-from apps.auth.serializers import (
-    LoginSerializer,
-    RegisterSerializer,
-)
+from apps.auth.serializers import LoginSerializer
 
 LOGIN_SCHEMA = {
     "request": LoginSerializer,
     "summary": "Login Endpoint",
     "description": "Authenticate a user",
     "tags": ["auth"],
-}
-
-REGISTER_SCHEMA = {
-    "request": RegisterSerializer,
-    "summary": "User registration",
 }
