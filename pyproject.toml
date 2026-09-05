@@ -21,6 +21,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "django-debug-toolbar>=8.0.0",
     "ipdb>=0.13.13",
     "pre-commit>=4.6.2",
     "rich>=15.0.0",
