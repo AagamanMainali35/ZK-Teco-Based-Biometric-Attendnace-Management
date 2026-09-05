@@ -1,16 +1,18 @@
+from django.contrib.auth.models import Group, Permission
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.viewsets import ModelViewSet
 
 from apps.attendance.serializers import DailyAttendanceSerializer
 from apps.attendance.service import AttendanceService
 from apps.auth.schema_docs import REGISTER_SCHEMA
 from apps.auth.serializers import RegisterSerializer
 from apps.auth.service import AuthService
-
+from apps.user.serializers import GroupSerializer, PermissionSerializer
 
 # Create your views here.
 
@@ -45,3 +47,17 @@ class EmployeeListView(APIView):
         )
         serializer = DailyAttendanceSerializer(page, many=True)
         return paginator.get_paginated_response(serializer.data)
+
+
+@extend_schema(tags=["permission"])
+class PermissionView(ModelViewSet):
+    queryset = Permission.objects.all()
+    serializer_class = PermissionSerializer
+    http_method_names = ["get", "delete"]
+
+
+@extend_schema(tags=["groups"])
+class GroupsView(ModelViewSet):
+    queryset = Group.objects.all()
+    serializer_class = GroupSerializer
+    http_method_names = ["get", "post", "patch", "delete"]

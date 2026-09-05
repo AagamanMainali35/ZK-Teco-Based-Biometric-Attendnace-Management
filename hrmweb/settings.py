@@ -89,6 +89,8 @@ SPECTACULAR_SETTINGS = {
     "VERSION": "1.0.0",
     "TAGS": [
         {"name": "auth"},
+        {"name": "permission"},
+        {"name": "groups"},
         {"name": "device"},
         {"name": "attendance"},
         {"name": "employee"},
