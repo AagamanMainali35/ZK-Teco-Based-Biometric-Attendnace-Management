@@ -1,7 +1,14 @@
+from datetime import datetime
+
 from django.db import models
+from django.db.models import Sum
 
 from apps.base.models import BaseModel
 from apps.user.models import Employee
+
+
+def get_current_year():
+    return datetime.now().year
 
 
 class LeaveStatus(models.TextChoices):
@@ -57,3 +64,68 @@ class LeaveRequest(BaseModel):
 
     def __str__(self):
         return f"{self.employee.username} - {self.leave_type.name} ({self.start_date} to {self.end_date}) [{self.status}]"
+
+
+class EmployeeLeaveBalance(BaseModel):
+    employee = models.ForeignKey(
+        Employee,
+        on_delete=models.CASCADE,
+        related_name="leave_balances",
+    )
+    leave_type = models.ForeignKey(
+        LeaveType,
+        on_delete=models.CASCADE,
+        related_name="employee_balances",
+    )
+    year = models.PositiveIntegerField(default=get_current_year)
+    allocated_days = models.PositiveIntegerField(
+        default=0,
+        help_text="Total days granted for this leave type for the year.",
+    )
+
+    class Meta:
+        unique_together = ("employee", "leave_type", "year")
+        ordering = ["-year", "employee", "leave_type"]
+
+    def __str__(self):
+        return f"{self.employee.username} - {self.leave_type.name} ({self.year}) [{self.allocated_days} days]"
+
+    def get_used_days(self) -> int:
+        total = (
+            LeaveRequest.objects.filter(
+                employee=self.employee,
+                leave_type=self.leave_type,
+                status=LeaveStatus.APPROVED,
+                start_date__year=self.year,
+            ).aggregate(total=Sum("days_count"))["total"]
+            or 0
+        )
+        return total
+
+    def get_pending_days(self) -> int:
+        total = (
+            LeaveRequest.objects.filter(
+                employee=self.employee,
+                leave_type=self.leave_type,
+                status=LeaveStatus.PENDING,
+                start_date__year=self.year,
+            ).aggregate(total=Sum("days_count"))["total"]
+            or 0
+        )
+        return total
+
+    @property
+    def used_days(self) -> int:
+        return self.get_used_days()
+
+    @property
+    def pending_days(self) -> int:
+        return self.get_pending_days()
+
+    @property
+    def remaining_days(self) -> int:
+        return max(0, self.allocated_days - self.used_days)
+
+    @property
+    def available_days(self) -> int:
+        return max(0, self.allocated_days - (self.used_days + self.pending_days))
