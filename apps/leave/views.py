@@ -1,16 +1,29 @@
+import django_filters
+from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiParameter, extend_schema
+from rest_framework import status
+from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
-import django_filters
 
-from apps.leave.models import LeaveRequest, LeaveStatus, LeaveType
+from apps.leave.models import (
+    EmployeeLeaveBalance,
+    LeaveRequest,
+    LeaveStatus,
+    LeaveType,
+)
 from apps.leave.serializers import (
+    EmployeeLeaveBalanceSerializer,
+    LeaveRequestCreateSerializer,
     LeaveRequestSerializer,
+    LeaveRequestUpdateSerializer,
     LeaveTypeSerializer,
 )
+from apps.leave.service import LeaveService
 
 
 class LeavePagination(PageNumberPagination):
@@ -31,6 +44,16 @@ class LeaveRequestFilter(django_filters.FilterSet):
         fields = ["status", "leave_type", "employee_id", "start_date", "end_date"]
 
 
+class EmployeeLeaveBalanceFilter(django_filters.FilterSet):
+    employee_id = django_filters.CharFilter(field_name="employee__employee_id", lookup_expr="exact")
+    leave_type = django_filters.NumberFilter(field_name="leave_type__id")
+    year = django_filters.NumberFilter(field_name="year")
+
+    class Meta:
+        model = EmployeeLeaveBalance
+        fields = ["employee_id", "leave_type", "year"]
+
+
 @extend_schema(tags=["leave"])
 class LeaveTypeViewSet(ModelViewSet):
     """CRUD ViewSet for managing Leave Types (e.g. Sick Leave, Annual Leave)."""
@@ -47,20 +70,9 @@ class LeaveTypeViewSet(ModelViewSet):
 
 @extend_schema(tags=["leave"])
 class LeaveRequestViewSet(ModelViewSet):
-    """Compact ViewSet for Leave Applications.
+    """Compact ViewSet for Leave Applications."""
 
-    - GET /api/leave/requests/: List all leaves (filterable by status, employee_id, date range).
-    - POST /api/leave/requests/: Apply for a leave.
-    - GET /api/leave/requests/{id}/: View leave details.
-    - PATCH /api/leave/requests/{id}/: Update leave or status (approve/reject/cancel).
-    - DELETE /api/leave/requests/{id}/: Delete a leave request.
-    """
-
-    queryset = (
-        LeaveRequest.objects.all()
-        .select_related("employee", "leave_type", "reviewed_by")
-        .order_by("-created_at")
-    )
+    queryset = LeaveRequest.objects.all().select_related("employee", "leave_type", "reviewed_by").order_by("-created_at")
     serializer_class = LeaveRequestSerializer
     pagination_class = LeavePagination
     permission_classes = [IsAuthenticated]
@@ -69,3 +81,79 @@ class LeaveRequestViewSet(ModelViewSet):
     search_fields = ["employee__username", "employee__employee_id", "reason"]
     ordering_fields = ["created_at", "start_date", "end_date", "status"]
     http_method_names = ["get", "post", "patch", "delete"]
+
+    def get_serializer_class(self):
+        if self.action == "create":
+            return LeaveRequestCreateSerializer
+        if self.action in ["update", "partial_update"]:
+            return LeaveRequestUpdateSerializer
+        return LeaveRequestSerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        instance = serializer.save()
+        output_serializer = LeaveRequestSerializer(instance, context=self.get_serializer_context())
+        return Response(output_serializer.data, status=status.HTTP_201_CREATED)
+
+    def partial_update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        instance = serializer.save()
+        output_serializer = LeaveRequestSerializer(instance, context=self.get_serializer_context())
+        return Response(output_serializer.data, status=status.HTTP_200_OK)
+
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=False)
+        serializer.is_valid(raise_exception=True)
+        instance = serializer.save()
+        output_serializer = LeaveRequestSerializer(instance, context=self.get_serializer_context())
+        return Response(output_serializer.data, status=status.HTTP_200_OK)
+
+
+@extend_schema(tags=["leave"])
+class EmployeeLeaveBalanceViewSet(ModelViewSet):
+    """ViewSet for managing and inspecting Employee Leave Balances."""
+
+    queryset = (
+        EmployeeLeaveBalance.objects.all().select_related("employee", "leave_type").order_by("-year", "employee__username", "leave_type__name")
+    )
+    serializer_class = EmployeeLeaveBalanceSerializer
+    pagination_class = LeavePagination
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_class = EmployeeLeaveBalanceFilter
+    ordering_fields = ["year", "allocated_days", "created_at"]
+    http_method_names = ["get", "post", "patch", "delete"]
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name="year",
+                description="Calendar year to retrieve balances for (defaults to current year).",
+                required=False,
+                type=int,
+            )
+        ],
+        responses=EmployeeLeaveBalanceSerializer(many=True),
+    )
+    @action(detail=False, methods=["get"], url_path="my-balances")
+    def my_balances(self, request):
+        """Returns the leave balances for the currently authenticated employee."""
+        year = request.query_params.get("year")
+        if year:
+            try:
+                year = int(year)
+            except ValueError:
+                return Response(
+                    {"detail": "Invalid year provided. Must be an integer."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        else:
+            year = timezone.now().year
+
+        balances = LeaveService.get_employee_balances(request.user, year=year)
+        serializer = self.get_serializer(balances, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
