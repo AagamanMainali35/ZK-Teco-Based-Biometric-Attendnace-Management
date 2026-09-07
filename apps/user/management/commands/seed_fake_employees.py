@@ -79,7 +79,7 @@ class Command(BaseCommand):
                 sample_idx = idx % len(SAMPLE_EMPLOYEES)
                 first_name, last_name = SAMPLE_EMPLOYEES[sample_idx]
                 username = f"{first_name.lower()}.{last_name.lower()}{uid}"
-                email = f"{first_name.lower()}.{last_name.lower()}{uid}@lioris.ai"
+                email = f"{first_name.lower()}.{last_name.lower()}{uid}@company.com"
 
                 employee = Employee.objects.filter(employee_id=uid).first()
                 if not employee:
