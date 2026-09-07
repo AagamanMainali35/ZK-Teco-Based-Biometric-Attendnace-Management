@@ -1,5 +1,4 @@
 from django.contrib.auth.models import Group, Permission
-from django.db.models import Count
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
@@ -11,6 +10,7 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
 from apps.auth.serializers import ChangeEmployeePasswordSerializer
+from apps.base.permissions import HasPerm, IsHR
 from apps.user.models import Employee
 from apps.user.serializers import (
     EmployeeSerializer,
@@ -36,12 +36,20 @@ class EmployeeViewSet(ModelViewSet):
     queryset = Employee.objects.all().prefetch_related("groups").order_by("-id")
     serializer_class = EmployeeSerializer
     pagination_class = StandardPagination
-    permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ["is_active", "is_staff", "is_superuser", "groups"]
     search_fields = ["username", "email", "first_name", "last_name", "employee_id", "zk_device_user_id"]
     ordering_fields = ["id", "employee_id", "username", "first_name", "last_name", "date_joined", "created_at"]
     ordering = ["-id"]
+
+    def get_permissions(self):
+        if self.action == "create":
+            return [IsAuthenticated(), HasPerm("user.add_employee")]
+        if self.action in ["update", "partial_update", "toggle_active", "change_password"]:
+            return [IsAuthenticated(), HasPerm("user.change_employee")]
+        if self.action == "destroy":
+            return [IsAuthenticated(), HasPerm("user.delete_employee")]
+        return [IsAuthenticated(), HasPerm("user.view_employee")]
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -96,6 +104,7 @@ class EmployeeViewSet(ModelViewSet):
 
 @extend_schema(tags=["permission"])
 class PermissionView(ModelViewSet):
+    permission_classes = [IsAuthenticated, IsHR]
     queryset = Permission.objects.all()
     serializer_class = PermissionSerializer
     http_method_names = ["get", "delete"]
@@ -103,6 +112,7 @@ class PermissionView(ModelViewSet):
 
 @extend_schema(tags=["groups"])
 class GroupsView(ModelViewSet):
+    permission_classes = [IsAuthenticated, IsHR]
     queryset = Group.objects.prefetch_related("permissions").order_by("-id")
     serializer_class = GroupSerializer
     http_method_names = ["get", "post", "patch", "delete"]
