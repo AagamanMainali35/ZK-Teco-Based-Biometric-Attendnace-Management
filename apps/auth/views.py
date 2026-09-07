@@ -13,6 +13,7 @@ from apps.auth.serializers import (
     UserSerializer,
 )
 from apps.auth.service import AuthService
+from apps.base.permissions import IsEmployee, IsHR
 
 
 class LoginView(APIView):
@@ -31,7 +32,7 @@ class LoginView(APIView):
 
 @extend_schema(tags=["auth"])
 class CurrentUser(GenericAPIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsEmployee]
     serializer_class = UserSerializer
 
     def get(self, request):
@@ -44,7 +45,7 @@ class ChangePasswordView(GenericAPIView):
     """Allows an authenticated employee to change their own password."""
 
     service_class = AuthService
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsEmployee]
     serializer_class = ChangePasswordSerializer
 
     def post(self, request):
@@ -62,7 +63,7 @@ class ChangeEmployeePasswordView(GenericAPIView):
     """Allows HR/Admin to change any employee's password."""
 
     service_class = AuthService
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsHR]
     serializer_class = ChangeEmployeePasswordSerializer
 
     def post(self, request):
