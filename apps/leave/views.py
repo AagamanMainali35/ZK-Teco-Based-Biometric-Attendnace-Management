@@ -10,6 +10,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
+from apps.base.permissions import HasPerm, IsEmployee
 from apps.leave.models import (
     EmployeeLeaveBalance,
     LeaveRequest,
@@ -67,12 +68,20 @@ class LeaveTypeViewSet(ModelViewSet):
     ordering_fields = ["id", "name", "code", "days_allowed", "created_at"]
     http_method_names = ["get", "post", "patch", "delete"]
 
+    def get_permissions(self):
+        if self.action == "create":
+            return [IsAuthenticated(), HasPerm("leave.add_leavetype")]
+        if self.action in ["update", "partial_update"]:
+            return [IsAuthenticated(), HasPerm("leave.change_leavetype")]
+        if self.action == "destroy":
+            return [IsAuthenticated(), HasPerm("leave.delete_leavetype")]
+        return [IsAuthenticated(), HasPerm("leave.view_leavetype")]
+
 
 @extend_schema(tags=["leave"])
 class LeaveRequestViewSet(ModelViewSet):
     """Compact ViewSet for Leave Applications."""
 
-    queryset = LeaveRequest.objects.all().select_related("employee", "leave_type", "reviewed_by").order_by("-created_at")
     serializer_class = LeaveRequestSerializer
     pagination_class = LeavePagination
     permission_classes = [IsAuthenticated]
@@ -81,6 +90,25 @@ class LeaveRequestViewSet(ModelViewSet):
     search_fields = ["employee__username", "employee__employee_id", "reason"]
     ordering_fields = ["created_at", "start_date", "end_date", "status"]
     http_method_names = ["get", "post", "patch", "delete"]
+
+    def get_permissions(self):
+        if self.action in ["update", "partial_update"]:
+            return [IsAuthenticated(), HasPerm("leave.change_leaverequest")]
+        if self.action == "destroy":
+            return [IsAuthenticated(), HasPerm("leave.delete_leaverequest")]
+        if self.action == "create":
+            return [IsAuthenticated(), HasPerm("leave.add_leaverequest")]
+        return [IsAuthenticated(), HasPerm("leave.view_leaverequest")]
+
+    def get_queryset(self):
+        user = self.request.user
+        if not (user and user.is_authenticated):
+            return LeaveRequest.objects.none()
+
+        if user.is_superuser or user.is_staff or user.has_perm("leave.change_leaverequest"):
+            return LeaveRequest.objects.all().select_related("employee", "leave_type", "reviewed_by").order_by("-created_at")
+
+        return LeaveRequest.objects.filter(employee=user).select_related("employee", "leave_type", "reviewed_by").order_by("-created_at")
 
     def get_serializer_class(self):
         if self.action == "create":
@@ -117,9 +145,6 @@ class LeaveRequestViewSet(ModelViewSet):
 class EmployeeLeaveBalanceViewSet(ModelViewSet):
     """ViewSet for managing and inspecting Employee Leave Balances."""
 
-    queryset = (
-        EmployeeLeaveBalance.objects.all().select_related("employee", "leave_type").order_by("-year", "employee__username", "leave_type__name")
-    )
     serializer_class = EmployeeLeaveBalanceSerializer
     pagination_class = LeavePagination
     permission_classes = [IsAuthenticated]
@@ -127,6 +152,35 @@ class EmployeeLeaveBalanceViewSet(ModelViewSet):
     filterset_class = EmployeeLeaveBalanceFilter
     ordering_fields = ["year", "allocated_days", "created_at"]
     http_method_names = ["get", "post", "patch", "delete"]
+
+    def get_permissions(self):
+        if self.action == "my_balances":
+            return [IsAuthenticated(), IsEmployee()]
+        if self.action == "create":
+            return [IsAuthenticated(), HasPerm("leave.add_employeeleavebalance")]
+        if self.action in ["update", "partial_update"]:
+            return [IsAuthenticated(), HasPerm("leave.change_employeeleavebalance")]
+        if self.action == "destroy":
+            return [IsAuthenticated(), HasPerm("leave.delete_employeeleavebalance")]
+        return [IsAuthenticated(), HasPerm("leave.view_employeeleavebalance")]
+
+    def get_queryset(self):
+        user = self.request.user
+        if not (user and user.is_authenticated):
+            return EmployeeLeaveBalance.objects.none()
+
+        if user.is_superuser or user.is_staff or user.has_perm("leave.change_employeeleavebalance"):
+            return (
+                EmployeeLeaveBalance.objects.all()
+                .select_related("employee", "leave_type")
+                .order_by("-year", "employee__username", "leave_type__name")
+            )
+
+        return (
+            EmployeeLeaveBalance.objects.filter(employee=user)
+            .select_related("employee", "leave_type")
+            .order_by("-year", "employee__username", "leave_type__name")
+        )
 
     @extend_schema(
         parameters=[
