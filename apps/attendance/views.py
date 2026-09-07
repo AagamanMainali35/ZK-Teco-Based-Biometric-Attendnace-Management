@@ -1,16 +1,19 @@
-from apps.attendance.models import Policy
-from apps.base.exception import HTTPException
+import django_filters
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.pagination import PageNumberPagination
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
-import django_filters
 
-from apps.attendance.models import DailyAttendanceLog, DeviceAttendanceLog
+from apps.attendance.models import (
+    DailyAttendanceLog,
+    DeviceAttendanceLog,
+    Policy,
+)
 from apps.attendance.query import (
     get_all_device,
     get_device_by_serial,
@@ -25,6 +28,8 @@ from apps.attendance.serializers import (
     RawAttendanceSerializer,
 )
 from apps.attendance.service import DeviceService, ZKDeviceService
+from apps.base.exception import HTTPException
+from apps.base.permissions import HasPerm, IsHR
 
 
 class DevicePagination(PageNumberPagination):
@@ -40,6 +45,7 @@ class DeviceView(ModelViewSet):
     serializer_class = DeviceSerializer
     service_class = DeviceService
     pagination_class = DevicePagination
+    permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = [
         "is_active",
@@ -59,6 +65,15 @@ class DeviceView(ModelViewSet):
     ]
 
     lookup_field = "serial"
+
+    def get_permissions(self):
+        if self.action == "create":
+            return [IsAuthenticated(), HasPerm("attendance.add_device")]
+        if self.action in ["update", "partial_update"]:
+            return [IsAuthenticated(), HasPerm("attendance.change_device")]
+        if self.action == "destroy":
+            return [IsAuthenticated(), HasPerm("attendance.delete_device")]
+        return [IsAuthenticated(), HasPerm("attendance.view_device")]
 
     def create(self, request: DeviceSerializer, *args, **kwargs) -> Response:
         serializer = self.get_serializer(data=request.data)
@@ -92,6 +107,8 @@ class DeviceView(ModelViewSet):
 
 @extend_schema(tags=["device"])
 class TestConnectionView(APIView):
+    permission_classes = [IsAuthenticated, IsHR]
+
     def post(self, request, *args, **kwargs):
         serial = self.kwargs.get("serial", None)
         if not serial or serial.strip() == "":
@@ -121,6 +138,8 @@ class TestConnectionView(APIView):
     ],
 )
 class PullAttendanceView(APIView):
+    permission_classes = [IsAuthenticated, HasPerm("attendance.add_deviceattendancelog")]
+
     def post(self, request, *args, **kwargs):
         serial = request.query_params.get("serial")
         if serial and serial.strip():
@@ -150,6 +169,8 @@ class PullAttendanceView(APIView):
     responses=DeviceSyncStateSerializer(many=True),
 )
 class DeviceSyncStateView(APIView):
+    permission_classes = [IsAuthenticated, IsHR]
+
     def get(self, request, *args, **kwargs):
         serial = request.query_params.get("serial")
         if serial and serial.strip():
@@ -166,6 +187,7 @@ class DeviceSyncStateView(APIView):
         data = get_devices_with_sync_state()
         serializer = DeviceSyncStateSerializer(data, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 class AttendanceFilter(django_filters.FilterSet):
     start_date = django_filters.DateFilter(
@@ -192,10 +214,12 @@ class AttendanceFilter(django_filters.FilterSet):
             "status",
             "is_early_leave",
         ]
-        
+
+
 @extend_schema(tags=["attendance"])
 class DailyAttendanceViewSet(ModelViewSet):
-    queryset = DailyAttendanceLog.objects.all().select_related("employee")
+    serializer_class = DailyAttendanceSerializer
+    permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = AttendanceFilter
     search_fields = [
@@ -203,18 +227,33 @@ class DailyAttendanceViewSet(ModelViewSet):
         "employee__employee_id",
     ]
     ordering_fields = [
-        "date", 
+        "date",
         "employee__username",
-        "total_hours"
+        "total_hours",
     ]
-    serializer_class = DailyAttendanceSerializer
     http_method_names = ["get", "delete"]
+
+    def get_permissions(self):
+        if self.action == "destroy":
+            return [IsAuthenticated(), HasPerm("attendance.delete_dailyattendancelog")]
+        return [IsAuthenticated(), HasPerm("attendance.view_dailyattendancelog")]
+
+    def get_queryset(self):
+        user = self.request.user
+        if not (user and user.is_authenticated):
+            return DailyAttendanceLog.objects.none()
+
+        if user.is_superuser or user.is_staff or user.has_perm("attendance.delete_dailyattendancelog"):
+            return DailyAttendanceLog.objects.all().select_related("employee")
+
+        return DailyAttendanceLog.objects.filter(employee=user).select_related("employee")
 
 
 @extend_schema(tags=["attendance"])
 class RawAttendanceView(ModelViewSet):
     queryset = DeviceAttendanceLog.objects.all()
     serializer_class = RawAttendanceSerializer
+    permission_classes = [IsAuthenticated, IsHR]
     http_method_names = ["get", "delete"]
 
 
@@ -222,7 +261,13 @@ class RawAttendanceView(ModelViewSet):
 class PolicyView(ModelViewSet):
     queryset = getAllPolicy()
     serializer_class = PolicySerializer
+    permission_classes = [IsAuthenticated]
     http_method_names = ["get", "post", "patch"]
+
+    def get_permissions(self):
+        if self.action in ["create", "partial_update", "update"]:
+            return [IsAuthenticated(), HasPerm("attendance.change_policy")]
+        return [IsAuthenticated(), HasPerm("attendance.view_policy")]
 
     def create(self, request, *args, **kwargs):
         if Policy.objects.exists():
@@ -231,5 +276,3 @@ class PolicyView(ModelViewSet):
                 status_code=status.HTTP_400_BAD_REQUEST,
             )
         return super().create(request, *args, **kwargs)
-
-
