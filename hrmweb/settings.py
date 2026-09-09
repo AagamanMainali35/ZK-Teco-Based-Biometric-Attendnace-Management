@@ -22,7 +22,11 @@ ORGANIZATION_DOMAIN = config("ORGANIZATION_DOMAIN", default="lioris.ai", cast=st
 
 AUTH_USER_MODEL = "user.Employee"
 
-SECRET_KEY = config("SECRET_KEY", cast=str, default="django-insecure-rfgrpht#)$yl%t*^tl@j%$gp)8@4x8ga=6+=54^np@8jhw_1sw")
+SECRET_KEY = config(
+    "SECRET_KEY",
+    cast=str,
+    default="django-insecure-rfgrpht#)$yl%t*^tl@j%$gp)8@4x8ga=6+=54^np@8jhw_1sw",
+)
 
 DEBUG = True
 
@@ -106,9 +110,18 @@ SPECTACULAR_SETTINGS = {
 }
 
 REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": ("rest_framework_simplejwt.authentication.JWTAuthentication",),
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_THROTTLE_RATES": {
+        "login": config("THROTTLE_RATE_LOGIN", default="5/min"),
+        "change_pwd": config("THROTTLE_RATE_CHANGE_PWD", default="5/min"),
+        "send_code": config("THROTTLE_RATE_SEND_CODE", default="3/min"),
+        "forgot_password": config("THROTTLE_RATE_FORGOT_PASSWORD", default="5/min"),
+    },
 }
+
 
 DATABASES = {
     "default": {
@@ -121,8 +134,15 @@ DATABASES = {
     }
 }
 
-# Password validation
-# https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": config("REDIS_URL", cast=str),
+        "KEY_PREFIX": config("CACHE_KEY_PREFIX", cast=str, default="hrm"),
+        "TIMEOUT": config("CACHE_TIMEOUT", cast=int, default=300),
+    }
+}
+
 
 AUTH_PASSWORD_VALIDATORS = [
     {
