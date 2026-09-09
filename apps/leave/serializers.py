@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from django.db.models import Sum
 from django.utils import timezone
 from rest_framework import serializers
@@ -315,7 +317,7 @@ class LeaveRequestUpdateSerializer(serializers.ModelSerializer):
         if new_status and new_status in [LeaveStatus.APPROVED, LeaveStatus.REJECTED]:
             if request and request.user and request.user.is_authenticated:
                 instance.reviewed_by = request.user
-            instance.reviewed_at = timezone.now()
+            instance.reviewed_at = datetime.now()
 
         instance = super().update(instance, validated_data)
 

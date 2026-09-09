@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import django_filters
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
@@ -206,7 +208,7 @@ class EmployeeLeaveBalanceViewSet(ModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
         else:
-            year = timezone.now().year
+            year = datetime.now().year
 
         balances = LeaveService.get_employee_balances(request.user, year=year)
         serializer = self.get_serializer(balances, many=True)
