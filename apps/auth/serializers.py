@@ -55,5 +55,37 @@ class ChangePasswordSerializer(serializers.Serializer):
 
 class ChangeEmployeePasswordSerializer(serializers.Serializer):
     """Used by HR/Admin to change any employee's password."""
+
     employee_id = serializers.CharField(required=False, help_text="Employee ID or username (optional if specified in URL)")
     new_password = serializers.CharField(write_only=True)
+
+
+class SendResetCodeSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=True, help_text="Configured email address of the employee account")
+
+    def validate_email(self, value):
+        return value.lower().strip()
+
+
+class ForgotPasswordSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=True, help_text="Configured email address of the employee account")
+    code = serializers.CharField(
+        required=True,
+        max_length=20,
+        help_text="Verification code received in email",
+    )
+    new_password = serializers.CharField(write_only=True, required=True)
+    confirm_password = serializers.CharField(write_only=True, required=False, allow_blank=True, default="")
+
+    def validate_email(self, value):
+        return value.lower().strip()
+
+    def validate_code(self, value):
+        return value.strip()
+
+    def validate(self, attrs):
+        confirm = attrs.get("confirm_password")
+        new_password = attrs.get("new_password")
+        if confirm and new_password != confirm:
+            raise serializers.ValidationError({"confirm_password": "Passwords do not match."})
+        return attrs

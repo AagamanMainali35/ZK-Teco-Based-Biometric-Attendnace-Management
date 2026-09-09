@@ -5,7 +5,9 @@ from apps.auth.views import (
     ChangeEmployeePasswordView,
     ChangePasswordView,
     CurrentUser,
+    ForgotPasswordView,
     LoginView,
+    SendCodeView,
 )
 
 urlpatterns = [
@@ -14,4 +16,6 @@ urlpatterns = [
     path("me/", CurrentUser.as_view(), name="me"),
     path("change-password/", ChangePasswordView.as_view(), name="change-password"),
     path("change-employee-password/", ChangeEmployeePasswordView.as_view(), name="change-employee-password"),
+    path("send-code/", SendCodeView.as_view(), name="send-code"),
+    path("forget-password/", ForgotPasswordView.as_view(), name="forget-password"),
 ]
